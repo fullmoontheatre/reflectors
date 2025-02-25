@@ -1,0 +1,50 @@
+import math
+import FreeCAD as App
+import Draft
+
+#L = 2400 # Length of panel, constant
+#A = 100  # Amplitude (displacement at center of panel), user defined
+
+# y = A * sin(b*x)
+# Period P = pi/b => b = pi/P
+
+# Lp = projected length of the panel on the x axis.
+# Lp = P/2
+
+# Calculate Lp through approximantions
+# and place 24 points on FreeCAD to be united by a spline
+
+def get_y(x, A, P):
+    return A*math.sin((math.pi * x)/P)
+
+def generate_points(A,Lp,step):
+    points = [(x,get_y(x,A,Lp)) for x in range(0,Lp+step,step)]
+    return points
+
+def build_sinusoid(A,L,step):
+	## Start generating a sinusoid that has P/2 (Lp in generate_points) equal to the length of the panel
+	## Then query the length of the curve and reduce the Lp parameter
+	## Return when the Lp <= L
+	
+	Lp = L
+	points = generate_points(A,Lp,step)
+	vectors = [App.Vector(p[0],p[1],0) for p in points]
+	spline = Draft.make_bspline(vectors, closed=False)
+	
+	App.ActiveDocument.recompute()
+	print(spline.Shape.Length)
+
+	while int(spline.Shape.Length) > L:
+		Lp -= 1
+		print(Lp)
+		points = generate_points(A,Lp,step)
+		vectors = [App.Vector(p[0],p[1],0) for p in points]
+		spline.Points = vectors
+		App.ActiveDocument.recompute()
+		print(spline.Shape.Length)
+	
+	
+	App.ActiveDocument.recompute()
+	return spline
+
+build_sinusoid(150, 2400, 1)
